@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Template Testing</title>
+</head>
+<body>
+    <h1>Items List</h1>
+    <a href="/new">Add New</a>
+    <ol>
+        {{range $i, $item := .Items}}
+        <li><a href="/show?id={{$item.ID}}">{{$item.Name}}</a>&nbsp;[<a href="/delete?id={{$item.ID}}">x</a>]</li>
+        {{end}}
+    </ol>
+</body>
+</html>

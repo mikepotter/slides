@@ -1,0 +1,333 @@
+Go Package http
+
+Utah Gophers
+12 Aug 2014
+
+Michael Potter
+Rakuten Marketing
+mike@potter.xyz
+
+* Covered in this presentation:
+
+- Brief Go http intro
+- Frameworks
+- Hello World
+- Simple Server
+- Custom Server
+- Static Files
+- Templates
+- Reverse Proxy
+
+* Why Go http?
+
+* Because it's Go!
+- Speed
+- Single Binary (plus assets)
+- Concurrency
+- Fully supported in the core
+- Well documented
+
+For more information, visit:
+
+.link http://golang.org/doc/articles/wiki/ Go Wiki http Article
+
+* Frameworks
+
+* What are the purposes of an HTTP framework
+- CRUD
+- MVC Design
+- Standardization
+- Speed of Development
+
+* Go HTTP Frameworks
+- Routing
+- Middleware
+- Templates
+
+* <SoapBox>
+
+* REST
+
+Pretty URL != REST
+MVC != REST
+
+* REST
+net/http ~= REST
+
+* </SoapBox>
+
+* Benchmarks
+
+.image images/benchmarks.png
+
+* Benchmarks (PHP/Ruby)
+.image images/benchmarks2.png
+
+* Framework Overhead
+
+.image images/framework_overhead.png
+
+* Go Core
+
+* Core Packages
+
+*net/http*
+Package http provides HTTP client and server implementations.
+- Client
+- Server
+- Cookies
+- Request/Response handling
+- fcgi
+
+*net/http/httputil*
+Package httputil provides HTTP utility functions, complementing the more common ones in the net/http package.
+- Dump Request
+- Dump Response
+- Request Hijacking
+- Reverse Proxy
+
+* Core Packages (Continued)
+
+*net/url*
+Package url parses URLs and implements query escaping.
+- URL Parsing
+- Escaping/Unescaping
+
+* Hello World
+
+* Hello World
+
+Default Example
+
+    package main
+
+    import (
+        "fmt"
+        "net/http"
+    )
+
+    func handler(w http.ResponseWriter, r *http.Request) {
+        fmt.Fprintf(w, "Hi there, I love %s!", r.URL.Path[1:])
+    }
+
+    func main() {
+        http.HandleFunc("/", handler)
+        http.ListenAndServe(":8080", nil)
+    }
+
+.link http://golang.org/doc/articles/wiki/#tmp_3 Source - Go Wiki
+
+* Hello World
+
+Enhanced HelloWorld
+
+.code -numbers code/helloworld/main.go
+
+* HTTP Testing
+
+* HTTP Testing
+    package main
+
+    import (
+        "net/http"
+        "net/http/httptest"
+        "testing"
+    )
+
+    func TestHandler(t *testing.T) {
+        expectedBody := "Hi there, I love golang!"
+        recorder := httptest.NewRecorder()
+        req, err := http.NewRequest("GET", "http://example.com/golang", nil)
+        if err != nil {
+            t.Fatal(err)
+        }
+
+        handler(recorder, req)
+
+        if expectedBody != recorder.Body.String() {
+            t.Fatalf("expected %s. Got %s", expectedBody, recorder.Body.String())
+        }
+    }
+
+* Simple Client API
+
+* Simple Client API
+
+mypackage/main.go
+
+    package main
+
+    import (
+        "encoding/json"
+        "log"
+        "net/http"
+    )
+
+    func ServeHTTP(w http.ResponseWriter, r *http.Request) {
+        var f func(http.ResponseWriter, *http.Request)
+        switch r.Method {
+        case "GET":
+            f = list
+        case "POST":
+            f = add
+        default:
+            f = http.NotFound
+        }
+        f(w, r)
+    }
+
+* Simple Client API
+
+mypackage/main.go (continued)
+
+    func list(w http.ResponseWriter, r *http.Request) {
+        clients, err := allclients() // Get a list of clients
+        if err != nil {
+            http.Error(w, "Unknown Error", http.StatusInternalServerError)
+        }
+        w.Write(clients)
+    }
+
+    func add(w http.ResponseWriter, r *http.Request) {
+        // Add your client here, and redirect to client list.
+        http.Redirect(w, r, "/api/clients", http.StatusSeeOther)
+    }
+
+    func main() {
+        http.HandleFunc("/api/clients", ServeHTTP)
+
+        log.Println("Listening on port 8080")
+        log.Fatal(http.ListenAndServe(":8080", nil))
+    }
+
+* Custom Client Handlers
+
+main.go
+
+.code code/complex_api/main.go /^package/,/^}/
+
+* Custom Client Handlers
+
+main.go (continued)
+
+.code code/complex_api/main.go /^func \(h \*MainHandler\) ServeHTTP/,/^}/
+
+* Custom Client Handlers
+
+main.go (continued)
+
+.code code/complex_api/main.go /^func main/,/^}/
+
+* Custom Client Handlers
+
+client.go
+
+.code code/complex_api/client/client.go /^package/,/^}/
+
+* Custom Client Handlers
+
+main.go (continued)
+
+.code code/complex_api/client/client.go /^type client/,/^}/
+.code code/complex_api/client/client.go /^func Handler/,/^}/
+
+* Custom Client Handlers
+
+client.go (continued)
+
+.code code/complex_api/client/client.go /^func \(c \*Client\) ServeHTTP/,/^}/
+
+* Custom Client Handlers
+
+client.go (continued)
+
+.code code/complex_api/client/client.go /^func \(c \*Client\) list/,/^}/
+
+* Custom Client Handlers
+
+client.go (continued)
+
+.code code/complex_api/client/client.go /^func \(c \*Client\) add/,/^}/
+
+* Custom Client Handlers
+
+client.go (continued)
+
+.code -numbers code/complex_api/client/client.go /^func \(c \*Client\) del/,/^}/
+
+* Custom Client Handlers Example 
+
+* Static Files
+
+* Serving a Static File
+
+main.go
+
+.code -numbers code/static_files/main.go
+
+* Templates
+
+* Templates
+
+From their docs:
+
+Package template (html/template) implements data-driven templates for generating HTML output safe against code injection. It provides the same interface as package text/template and should be used instead of text/template whenever the output is HTML.
+
+.link http://golang.org/pkg/html/template/ http://golang.org/pkg/html/template/
+
+* Templates
+
+main.go
+
+.code -numbers code/templates/main.go /^package/,/^}/
+.code -numbers code/templates/main.go /^type Item/,/^}/
+.code -numbers code/templates/main.go /^var \(/,/^\)/
+
+* Templates
+
+main.go (continued)
+
+.code -numbers code/templates/main.go /^func init/,/^}/
+.code -numbers code/templates/main.go /^func list/,/^}/
+
+* Templates
+
+main.go (continued)
+
+.code -numbers code/templates/main.go /^func show/,/^}/
+
+* Templates
+
+list.html
+
+.code -numbers code/templates/list.html
+
+* Templates
+
+show.html
+
+.code -numbers code/templates/show.html
+
+* Templates Example
+
+* Reverse Proxy
+
+* Reverse Proxy
+
+main.go
+
+.code -numbers code/reverseproxy/main.go /^package/,/^}/
+
+* Reverse Proxy
+
+main.go (continued)
+
+.code -numbers code/reverseproxy/main.go /^func main/,/^}/
+
+* Reverse Proxy
+
+main.go (continued)
+
+.code -numbers code/reverseproxy/main.go /ServeHTTP/,/^}/
+
+* Reverse Proxy Example
